@@ -4,7 +4,7 @@ import logging
 import httpx
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 from bs4 import BeautifulSoup
-from cas_connector import CASClient
+from casint import CASClient
 from dotenv import load_dotenv
 from typing import Tuple, Dict, Any, Optional, Callable
 
@@ -24,7 +24,7 @@ class TrombINT:
 
     async def _get_cookies(self) -> httpx.Cookies:
         if self.cookies: return self.cookies
-        # Use shared instance from cas_connector
+        # Use shared instance from casint
         cas = await CASClient.get_shared_instance(service_url=ETUDIANTS_URL)
         return cas.cookies
 

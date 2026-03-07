@@ -9,7 +9,7 @@ authors = [
 requires-python = ">=3.13"
 dependencies = [
     "beautifulsoup4",
-    "cas-connector",
+    "casint",
     "python-dotenv",
     "requests",
 ]
@@ -18,7 +18,7 @@ dependencies = [
 trombint = "trombint.cli:main"
 
 [tool.uv.sources]
-cas-connector = { workspace = true }
+casint = { path = "../casint" }
 
 [build-system]
 requires = ["hatchling"]

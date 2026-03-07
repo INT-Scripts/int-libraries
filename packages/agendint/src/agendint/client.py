@@ -6,9 +6,9 @@ import os
 import re
 import logging
 from typing import Tuple, Dict, Any, Optional
-from cas_connector import CASClient
+from casint import CASClient
 
-logger = logging.getLogger("si_agenda")
+logger = logging.getLogger("agendint")
 
 HEAD = {
     "User-Agent": (

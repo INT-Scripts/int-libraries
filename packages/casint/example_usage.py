@@ -1,6 +1,6 @@
 import os
 import logging
-from cas_connector import CASClient, CASLoginError, CASConnectionError
+from casint import CASClient, CASLoginError, CASConnectionError
 import getpass
 
 # Configure logging to see output

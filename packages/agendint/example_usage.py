@@ -7,8 +7,8 @@ from dotenv import load_dotenv
 # Ensure the src directory is in the path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "src")))
 
-from si_agenda.client import SIClient
-from si_agenda.api import get_calendars, get_events, get_event_details_batch
+from agendint.client import SIClient
+from agendint.api import get_calendars, get_events, get_event_details_batch
 
 def main():
     # 1. Load configuration
