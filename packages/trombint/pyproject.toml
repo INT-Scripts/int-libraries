@@ -1,0 +1,28 @@
+[project]
+name = "trombint"
+version = "0.1.0"
+description = "IMT-BS/TSP Student Directory Scraper"
+readme = "README.md"
+authors = [
+    { name = "PalantINT Team" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "beautifulsoup4",
+    "cas-connector",
+    "python-dotenv",
+    "requests",
+]
+
+[project.scripts]
+trombint = "trombint.cli:main"
+
+[tool.uv.sources]
+cas-connector = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/trombint"]
