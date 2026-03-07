@@ -1,0 +1,8 @@
+[project]
+name = "int-libraries"
+version = "0.1.0"
+description = "Monorepo for IMT-BS / TSP student utility libraries"
+requires-python = ">=3.11"
+
+[tool.uv.workspace]
+members = ["packages/*"]
