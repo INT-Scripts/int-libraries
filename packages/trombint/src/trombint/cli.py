@@ -1,14 +1,15 @@
+import asyncio
 import argparse
 import sys
 import os
 import json
 import logging
-from .client import get_students_by_name, get_all_students, get_pfp_by_name, get_all_pfps, download_image
+from .client import get_students_by_name, get_all_students, download_image
 
 def setup_logging():
     logging.basicConfig(level=logging.INFO, stream=sys.stderr, format="%(message)s")
 
-def handle_output(students: list[dict], args):
+async def handle_output(students: list[dict], args):
     if not students:
         if args.name:
             print(f"Student '{args.name}' not found.", file=sys.stderr)
@@ -24,7 +25,7 @@ def handle_output(students: list[dict], args):
             os.makedirs(os.path.dirname(os.path.abspath(out_path)) or '.', exist_ok=True)
             url = students[0].get('photo_url')
             if url:
-                download_image(url, out_path)
+                await download_image(url, out_path)
         else:
             # Multiple students or directory specified
             os.makedirs(out_path, exist_ok=True)
@@ -35,7 +36,7 @@ def handle_output(students: list[dict], args):
                     # Clean filename characters if needed
                     safe_uid = "".join(c for c in uid if c.isalnum() or c in ('-', '_'))
                     final_path = os.path.join(out_path, f"{safe_uid}.jpg")
-                    download_image(url, final_path)
+                    await download_image(url, final_path)
 
     # 2. Output JSON info
     if args.pfp_only:
@@ -52,7 +53,7 @@ def handle_output(students: list[dict], args):
         else:
             print(out_str)
 
-def main():
+async def async_main():
     setup_logging()
     
     parser = argparse.ArgumentParser(description="TrombINT: A CLI tool and Python module to extract profile pictures and student information from the IMT-BS/TSP directory.")
@@ -65,13 +66,19 @@ def main():
     args = parser.parse_args()
 
     if args.name:
-        students = get_students_by_name(args.name)
-        handle_output(students, args)
+        students = await get_students_by_name(args.name)
+        await handle_output(students, args)
     elif args.all:
-        students = get_all_students()
-        handle_output(students, args)
+        students = await get_all_students()
+        await handle_output(students, args)
     else:
         parser.print_help()
+
+def main():
+    try:
+        asyncio.run(async_main())
+    except KeyboardInterrupt:
+        pass
 
 if __name__ == "__main__":
     main()

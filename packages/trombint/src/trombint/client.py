@@ -110,5 +110,8 @@ class TrombINT:
 async def get_all_students():
     return await (await TrombINT.create()).get_all_students()
 
+async def get_students_by_name(name: str):
+    return await (await TrombINT.create()).get_students_by_name(name)
+
 async def download_image(url: str, output_path: str):
     return await (await TrombINT.create()).download_image(url, output_path)

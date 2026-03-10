@@ -18,7 +18,7 @@ dependencies = [
 trombint = "trombint.cli:main"
 
 [tool.uv.sources]
-casint = { path = "../casint" }
+casint = { path = "../casint", editable = true }
 
 [build-system]
 requires = ["hatchling"]

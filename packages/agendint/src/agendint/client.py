@@ -8,6 +8,8 @@ import logging
 from typing import Tuple, Dict, Any, Optional
 from casint import CASClient
 
+from contextlib import asynccontextmanager
+
 logger = logging.getLogger("agendint")
 
 HEAD = {
@@ -19,6 +21,7 @@ HEAD = {
 }
 
 START_URL = "https://si-etudiants.imtbs-tsp.eu/OpDotNet/Noyau/Login.aspx?auth=SAMLv2ProviderConfiguration"
+LIST_CAL_URL = "https://si-etudiants.imtbs-tsp.eu/Eplug/Agenda/Libre/Calendrier.asp?IdApplication=190&TypeAcces=Utilisateur&IdLien=304"
 
 class SIClient:
     def __init__(self, cookies: Optional[httpx.Cookies] = None):
@@ -32,9 +35,16 @@ class SIClient:
         cas = await CASClient.get_shared_instance(service_url=START_URL)
         return cas.cookies
 
-    async def get_client(self) -> httpx.AsyncClient:
+    @asynccontextmanager
+    async def get_client(self):
         cookies = await self._get_cookies()
-        return httpx.AsyncClient(cookies=cookies, headers=HEAD, follow_redirects=True)
+        client = httpx.AsyncClient(cookies=cookies, headers=HEAD, follow_redirects=True)
+        try:
+            yield client
+        finally:
+            # Persist cookies back to our state after the client is done
+            self.cookies = client.cookies
+            await client.aclose()
 
     @classmethod
     async def create(cls) -> "SIClient":
@@ -42,7 +52,17 @@ class SIClient:
         await instance._finalize_si_login()
         return instance
 
-    async def _handle_js_autosubmit(self, html, base_url, extra_headers=None):
+    async def login(self, username: Optional[str] = None, password: Optional[str] = None) -> bool:
+        """Compatibility method for older CLI/scripts."""
+        if username and password:
+            cas = CASClient(service_url=START_URL)
+            await cas.login(username=username, password=password)
+            self.cookies = cas.cookies
+        
+        await self._finalize_si_login()
+        return self.authenticated
+
+    async def _handle_js_autosubmit(self, client, html, base_url, extra_headers=None):
         soup = BeautifulSoup(html, "html.parser")
         form = soup.find("form")
         if not form:
@@ -52,21 +72,18 @@ class SIClient:
         for key in ["shib_idp_ls_supported", "shib_idp_ls_success.shib_idp_session_ss", "shib_idp_ls_success.shib_idp_persistent_ss"]:
             if key in inputs: inputs[key] = "false"
                 
-        async with await self.get_client() as client:
-            r = await client.post(action, data=inputs, headers=extra_headers, timeout=15.0)
-            r.raise_for_status()
-            # If we don't have local cookies, update the global ones if needed, 
-            # but usually SI cookies are session-specific.
-            # We keep them in our local state.
-            return r
+        r = await client.post(action, data=inputs, headers=extra_headers, timeout=15.0)
+        r.raise_for_status()
+        self.cookies = client.cookies
+        return r
 
     async def _finalize_si_login(self):
-        async with await self.get_client() as client:
+        async with self.get_client() as client:
             r = await client.get(START_URL, timeout=15.0)
             max_steps = 5
             for _ in range(max_steps):
                 if "document.forms[0].submit()" in r.text or "document.formul.submit()" in r.text:
-                    r = await self._handle_js_autosubmit(r.text, r.url)
+                    r = await self._handle_js_autosubmit(client, r.text, r.url)
                     continue
                 break
                 
@@ -93,9 +110,9 @@ class SIClient:
         target_url = f"/Eplug/Agenda/Agenda.asp?IdApplication=190&TypeAcces=Utilisateur&IdLien=304&groupe={self.id_groupe}"
         full_bridge_url = f"{bridge_url}?url={target_url}"
         
-        async with await self.get_client() as client:
+        async with self.get_client() as client:
             r = await client.get(full_bridge_url)
             if "document.formul.submit();" in r.text or "aspxtoasp.asp" in r.text:
-                 r = await self._handle_js_autosubmit(r.text, r.url)
+                 r = await self._handle_js_autosubmit(client, r.text, r.url)
             self.cookies = client.cookies
             return str(r.url)
